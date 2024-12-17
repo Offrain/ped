@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест жүйесі</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .question {
+            margin-bottom: 20px;
+        }
+        .variant {
+            display: block;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .question-result {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест</h1>
+    <div id="quiz"></div>
+
+    <script>
+        async function loadTest() {
+            try {
+                const response = await fetch('test.txt');
+                if (!response.ok) throw new Error(`Файлды жүктеу қателігі: ${response.status}`);
+                const text = await response.text();
+
+                // Разбиваем на вопросы по разделителю ~~
+                const questions = text.split('~~').filter(q => q.trim());
+
+                const quizDiv = document.getElementById('quiz');
+                questions.forEach((questionBlock, index) => {
+                    const lines = questionBlock.split('\n')
+                        .map(line => line.replace(/\{.*?\}/g, '').trim()) // Удаляем содержимое в фигурных скобках
+                        .filter(line => line);
+
+                    if (lines.length < 2) return; // Пропускаем блок, если данных недостаточно
+
+                    const question = lines[0]; // Первая строка - сам вопрос
+                    const variants = lines.slice(1).map(line => line.replace('@@', '').trim());
+
+                    const correctVariant = variants[0];
+                    const wrongVariants = variants.slice(1);
+
+                    // Перемешиваем варианты ответов
+                    const allVariants = shuffleVariants([correctVariant, ...wrongVariants]);
+
+                    const questionDiv = document.createElement('div');
+                    questionDiv.classList.add('question');
+                    questionDiv.id = `q${index}`;
+
+                    // Отображение вопроса
+                    const questionElem = document.createElement('p');
+                    questionElem.textContent = `${index + 1}. ${question}`;
+                    questionDiv.appendChild(questionElem);
+
+                    // Метки для вариантов ответа
+                    const labels = ['A', 'B', 'C', 'D', 'E'];
+
+                    // Найдём индекс правильного ответа
+                    const correctAnswerIndex = allVariants.indexOf(correctVariant);
+
+                    allVariants.forEach((variant, vIndex) => {
+                        const label = document.createElement('label');
+                        label.classList.add('variant');
+                        label.innerHTML = `<input type="radio" name="q${index}" value="${vIndex === correctAnswerIndex ? 'correct' : 'wrong'}"> ${labels[vIndex]}. ${variant}`;
+                        questionDiv.appendChild(label);
+                    });
+
+                    // Кнопка проверки ответа
+                    const checkButton = document.createElement('button');
+                    checkButton.textContent = 'Тексеру';
+                    checkButton.onclick = function () {
+                        checkAnswer(index, correctAnswerIndex);
+                    };
+
+                    const resultDiv = document.createElement('div');
+                    resultDiv.id = `result${index}`;
+                    questionDiv.appendChild(resultDiv);
+
+                    questionDiv.appendChild(checkButton);
+                    quizDiv.appendChild(questionDiv);
+                });
+            } catch (error) {
+                document.getElementById('quiz').textContent = `Қате: ${error.message}`;
+            }
+        }
+
+        function shuffleVariants(variants) {
+            // Перемешивание массива
+            const shuffled = [...variants];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function checkAnswer(questionIndex, correctAnswerIndex) {
+            const selectedOption = document.querySelector(`input[name="q${questionIndex}"]:checked`);
+
+            const resultDiv = document.getElementById(`result${questionIndex}`);
+            if (!selectedOption) {
+                resultDiv.textContent = 'Жауап таңдаңыз!';
+                resultDiv.className = 'question-result';
+                resultDiv.style.color = 'orange';
+                return;
+            }
+
+            // Проверка ответа
+            if (selectedOption.value === 'correct') {
+                resultDiv.textContent = 'Дұрыс жауап';
+                resultDiv.className = 'question-result correct';
+            } else {
+                resultDiv.textContent = 'Қате жауап';
+                resultDiv.className = 'question-result incorrect';
+            }
+        }
+
+        // Загружаем тест при загрузке страницы
+        loadTest();
+    </script>
+</body>
+</html>
