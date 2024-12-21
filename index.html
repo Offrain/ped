@@ -57,6 +57,7 @@
     <h1>Тест</h1>
     <div class="shuffle-button">
         <button onclick="shuffleQuestions()">Сұрақтарды араластыру</button>
+        <button onclick="shuffleCurrentPageQuestions()">Беттің сұрақтарын араластыру</button>
     </div>
     <div id="quiz"></div>
     <div class="pagination" id="pagination"></div>
@@ -87,6 +88,15 @@
             currentPage = 1;
             renderPage(currentPage);
             renderPagination();
+        }
+
+        function shuffleCurrentPageQuestions() {
+            const start = (currentPage - 1) * questionsPerPage;
+            const end = currentPage * questionsPerPage;
+            const currentQuestions = allQuestions.slice(start, end);
+            const shuffledCurrentQuestions = shuffleVariants(currentQuestions);
+            allQuestions.splice(start, questionsPerPage, ...shuffledCurrentQuestions);
+            renderPage(currentPage);
         }
 
         function renderPage(page) {
